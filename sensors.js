@@ -21,7 +21,6 @@ class SensorManager {
         this._lastStepTime = 0;
         this._stepThreshold = 1.2;
         this._minStepInterval = 300; // ms
-        this._maxStepInterval = 2000; // ms
 
         // Calibration
         this._calibrationOffset = { x: 0, y: 0, z: 0 };
@@ -170,33 +169,32 @@ class SensorManager {
             this._accelHistory.shift();
         }
 
-        if (this._accelHistory.length < 5) return;
+        if (this._accelHistory.length < 40) return;
 
-        // Calculate running average
-        const recent = this._accelHistory.slice(-10);
+        // Candidate peak is the middle sample of the last three
+        const n = this._accelHistory.length;
+        const prev = this._accelHistory[n - 3].mag;
+        const curr = this._accelHistory[n - 2].mag;
+        const next = mag;
+        if (!(curr > prev && curr >= next)) return;
+
+        // Compare the peak against the average over ~0.65 s (40 samples at
+        // 60 Hz), roughly one step period, so the baseline is not dragged
+        // up by the peak itself
+        const recent = this._accelHistory.slice(-40);
         const avg = recent.reduce((s, v) => s + v.mag, 0) / recent.length;
+        if (curr - avg < this._stepThreshold) return;
 
-        // Peak detection
-        const timeSinceLastStep = now - this._lastStepTime;
-        const deviation = Math.abs(mag - avg);
+        // Only enforce a minimum interval (debounce). There must be no upper
+        // limit: a pause longer than that would otherwise block step
+        // detection permanently, since _lastStepTime would never update.
+        if (now - this._lastStepTime < this._minStepInterval) return;
 
-        if (deviation > this._stepThreshold &&
-            timeSinceLastStep > this._minStepInterval &&
-            timeSinceLastStep < this._maxStepInterval || (this._lastStepTime === 0 && deviation > this._stepThreshold)) {
+        this.stepCount++;
+        this._lastStepTime = now;
 
-            // Verify it's a peak (current value higher than neighbors)
-            const prev = this._accelHistory[this._accelHistory.length - 3]?.mag || 0;
-            const curr = this._accelHistory[this._accelHistory.length - 2]?.mag || 0;
-            const next = mag;
-
-            if (curr > prev && next <= curr) {
-                this.stepCount++;
-                this._lastStepTime = now;
-
-                if (this.onStep) {
-                    this.onStep(this.stepCount, this.heading);
-                }
-            }
+        if (this.onStep) {
+            this.onStep(this.stepCount, this.heading);
         }
     }
 
