@@ -1,0 +1,7 @@
+# Private key and self-signed cert for local HTTPS testing — never publish
+key.pem
+cert.pem
+*.pem
+
+# Local Claude Code settings
+.claude/

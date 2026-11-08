@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IndoorNav">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <title>IndoorNav</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header id="header">
+            <h1>IndoorNav</h1>
+            <div id="status-bar">
+                <span id="step-count">0 skritt</span>
+                <span id="heading-display">--°</span>
+                <span id="accuracy-indicator">--</span>
+            </div>
+        </header>
+
+        <div id="map-container">
+            <canvas id="map-canvas"></canvas>
+            <div id="zoom-controls">
+                <button id="zoom-in">+</button>
+                <button id="zoom-out">-</button>
+            </div>
+        </div>
+
+        <div id="controls">
+            <button id="btn-start" class="btn btn-primary">Start navigasjon</button>
+            <button id="btn-reset" class="btn btn-secondary">Nullstill</button>
+            <button id="btn-set-floor" class="btn btn-secondary">Sett etasje</button>
+            <button id="btn-calibrate" class="btn btn-secondary">Kalibrer</button>
+        </div>
+
+        <div id="floor-panel" class="panel hidden">
+            <h3>Velg etasje</h3>
+            <div id="floor-buttons"></div>
+            <button id="btn-close-floor" class="btn btn-secondary">Lukk</button>
+        </div>
+
+        <div id="calibration-panel" class="panel hidden">
+            <h3>Kalibrering</h3>
+            <p>Juster skrttlengde (meter):</p>
+            <input type="range" id="stride-slider" min="0.3" max="1.2" step="0.05" value="0.7">
+            <span id="stride-value">0.70 m</span>
+            <p>Hold telefonen stille og trykk kalibrer for a nullstille sensorene.</p>
+            <button id="btn-do-calibrate" class="btn btn-primary">Kalibrer sensorer</button>
+            <button id="btn-close-calibration" class="btn btn-secondary">Lukk</button>
+        </div>
+
+        <div id="info-panel" class="panel hidden">
+            <h3>Sensordata</h3>
+            <div id="sensor-debug"></div>
+        </div>
+
+        <nav id="bottom-nav">
+            <button class="nav-btn active" data-view="map">Kart</button>
+            <button class="nav-btn" data-view="info">Sensordata</button>
+        </nav>
+    </div>
+
+    <script src="sensors.js"></script>
+    <script src="navigation.js"></script>
+    <script src="map-renderer.js"></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+</html>
