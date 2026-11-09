@@ -22,6 +22,9 @@ class SensorManager {
         this._stepThreshold = 1.2;
         this._minStepInterval = 300; // ms
 
+        // Time of the last devicemotion event (for the stalled-sensor watchdog)
+        this.lastMotionTime = 0;
+
         // Calibration
         this._calibrationOffset = { x: 0, y: 0, z: 0 };
         this._isCalibrating = false;
@@ -59,6 +62,7 @@ class SensorManager {
 
         window.addEventListener('devicemotion', this._boundHandleMotion, true);
         window.addEventListener('deviceorientation', this._boundHandleOrientation, true);
+        this.lastMotionTime = Date.now(); // grace period before the watchdog warns
 
         // Use absolute orientation if available (webkitCompassHeading on iOS)
         if ('ondeviceorientationabsolute' in window) {
@@ -110,6 +114,7 @@ class SensorManager {
     _handleMotion(event) {
         const accel = event.accelerationIncludingGravity;
         if (!accel) return;
+        this.lastMotionTime = Date.now();
 
         this.acceleration = {
             x: accel.x - this._calibrationOffset.x,

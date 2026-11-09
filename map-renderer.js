@@ -11,6 +11,8 @@ class MapRenderer {
 
         // Follow mode: camera follows user
         this.followMode = true;
+        // World point (meters) the view is centered on when not following
+        this.center = { x: 0, y: 0 };
 
         // Grid
         this.gridSize = 1; // meters
@@ -134,6 +136,13 @@ class MapRenderer {
         this.followMode = true;
     }
 
+    // Center the view on a world point and stop following the user
+    centerOn(x, y) {
+        this.followMode = false;
+        this.center = { x, y };
+        this.offset = { x: 0, y: 0 };
+    }
+
     // Convert world position (meters) to screen pixels
     worldToScreen(worldX, worldY, centerX, centerY) {
         const sx = (worldX - centerX) * this.scale + this.width / 2 + this.offset.x;
@@ -141,7 +150,7 @@ class MapRenderer {
         return { x: sx, y: sy };
     }
 
-    render(position, path, heading, floor) {
+    render(position, path, heading, floor, pois = [], target = null) {
         const ctx = this.ctx;
         ctx.clearRect(0, 0, this.width, this.height);
 
@@ -150,12 +159,11 @@ class MapRenderer {
         ctx.fillRect(0, 0, this.width, this.height);
 
         // Center point for camera
-        let centerX = 0, centerY = 0;
         if (this.followMode) {
-            centerX = position.x;
-            centerY = position.y;
+            this.center = { x: position.x, y: position.y };
             this.offset = { x: 0, y: 0 };
         }
+        const centerX = this.center.x, centerY = this.center.y;
 
         // Draw grid
         if (this.showGrid) {
@@ -164,6 +172,14 @@ class MapRenderer {
 
         // Draw path
         this._drawPath(ctx, path, floor, centerX, centerY);
+
+        // Draw line to navigation target
+        if (target && target.floor === floor) {
+            this._drawTargetLine(ctx, position, target, centerX, centerY);
+        }
+
+        // Draw points of interest
+        this._drawPois(ctx, pois, floor, target, centerX, centerY);
 
         // Draw position marker with heading
         this._drawPositionMarker(ctx, position, heading, centerX, centerY);
@@ -238,6 +254,56 @@ class MapRenderer {
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.stroke();
+    }
+
+    _drawTargetLine(ctx, position, target, centerX, centerY) {
+        const a = this.worldToScreen(position.x, position.y, centerX, centerY);
+        const b = this.worldToScreen(target.x, target.y, centerX, centerY);
+        ctx.save();
+        ctx.setLineDash([6, 6]);
+        ctx.strokeStyle = '#FF9F0A';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    _drawPois(ctx, pois, currentFloor, target, centerX, centerY) {
+        ctx.save();
+        ctx.font = '600 12px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        for (const poi of pois) {
+            if (poi.floor !== currentFloor) continue;
+            const p = this.worldToScreen(poi.x, poi.y, centerX, centerY);
+            if (p.x < -50 || p.y < -50 || p.x > this.width + 50 || p.y > this.height + 50) continue;
+            const isTarget = target && target.id === poi.id;
+            const color = isTarget ? '#FF9F0A' : '#BF5AF2';
+
+            // Pin
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.bezierCurveTo(p.x - 9, p.y - 12, p.x - 9, p.y - 22, p.x, p.y - 22);
+            ctx.bezierCurveTo(p.x + 9, p.y - 22, p.x + 9, p.y - 12, p.x, p.y);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(p.x, p.y - 15, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+
+            // Label
+            const w = ctx.measureText(poi.name).width + 10;
+            ctx.fillStyle = 'rgba(28, 28, 30, 0.85)';
+            ctx.fillRect(p.x - w / 2, p.y - 42, w, 17);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(poi.name, p.x, p.y - 29);
+        }
+        ctx.restore();
     }
 
     _drawPositionMarker(ctx, position, heading, centerX, centerY) {

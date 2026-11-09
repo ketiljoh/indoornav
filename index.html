@@ -24,6 +24,10 @@
 
         <div id="map-container">
             <canvas id="map-canvas"></canvas>
+            <div id="target-bar" class="hidden">
+                <span id="target-info"></span>
+                <button id="btn-clear-target" aria-label="Avslutt navigering">&times;</button>
+            </div>
             <div id="zoom-controls">
                 <button id="zoom-in">+</button>
                 <button id="zoom-out">-</button>
@@ -32,6 +36,7 @@
 
         <div id="controls">
             <button id="btn-start" class="btn btn-primary">Start navigasjon</button>
+            <button id="btn-add-poi" class="btn btn-secondary">+ Marker sted</button>
             <button id="btn-reset" class="btn btn-secondary">Nullstill</button>
             <button id="btn-set-floor" class="btn btn-secondary">Sett etasje</button>
             <button id="btn-calibrate" class="btn btn-secondary">Kalibrer</button>
@@ -53,13 +58,36 @@
             <button id="btn-close-calibration" class="btn btn-secondary">Lukk</button>
         </div>
 
-        <div id="info-panel" class="panel hidden">
+        <div id="resume-panel" class="panel hidden">
+            <h3>Navigasjonen ble avbrutt</h3>
+            <p id="resume-info"></p>
+            <button id="btn-resume" class="btn btn-primary">Fortsett navigasjon</button>
+            <button id="btn-resume-reset" class="btn btn-secondary">Nullstill posisjon</button>
+        </div>
+
+        <div id="add-poi-panel" class="panel hidden">
+            <h3>Marker sted</h3>
+            <p id="add-poi-position"></p>
+            <input type="text" id="poi-name-input" maxlength="40" placeholder="Navn, f.eks. Kaffemaskin" autocomplete="off" enterkeyhint="done">
+            <button id="btn-save-poi" class="btn btn-primary">Lagre</button>
+            <button id="btn-cancel-poi" class="btn btn-secondary">Avbryt</button>
+        </div>
+
+        <div id="poi-list-panel" class="panel view-panel hidden">
+            <h3>Mine steder</h3>
+            <p class="hint">Stedene lagres i nettleseren på denne enheten. Posisjonene er relative til startpunktet, så start navigasjonen fra samme sted hver gang.</p>
+            <ul id="poi-list"></ul>
+            <p id="poi-empty" class="hint">Ingen steder ennå. Trykk «+ Marker sted» mens du navigerer.</p>
+        </div>
+
+        <div id="info-panel" class="panel view-panel hidden">
             <h3>Sensordata</h3>
             <div id="sensor-debug"></div>
         </div>
 
         <nav id="bottom-nav">
             <button class="nav-btn active" data-view="map">Kart</button>
+            <button class="nav-btn" data-view="pois">Steder</button>
             <button class="nav-btn" data-view="info">Sensordata</button>
         </nav>
     </div>
@@ -67,6 +95,7 @@
     <script src="sensors.js"></script>
     <script src="navigation.js"></script>
     <script src="map-renderer.js"></script>
+    <script src="pois.js"></script>
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
