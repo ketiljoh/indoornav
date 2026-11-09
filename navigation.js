@@ -24,6 +24,13 @@ class IndoorNavigator {
         this.path = [{ x: 0, y: 0, floor: this.floor }];
     }
 
+    // Start (or restart) dead reckoning from a known point, e.g. a saved place
+    setStart(x, y, floor) {
+        this.position = { x, y };
+        this.floor = floor;
+        this.path = [{ x, y, floor }];
+    }
+
     setFloor(floor) {
         this.floor = floor;
     }

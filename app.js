@@ -42,6 +42,9 @@
 
     const SESSION_KEY = 'indoornav-session';
     const resumePanel = document.getElementById('resume-panel');
+    const startPanel = document.getElementById('start-panel');
+    const startListEl = document.getElementById('start-list');
+    const startEmptyEl = document.getElementById('start-empty');
 
     // Initialize floor buttons
     function initFloorButtons() {
@@ -359,6 +362,7 @@
         poiNameInput.placeholder = poiStore.defaultName();
         floorPanel.classList.add('hidden');
         calibrationPanel.classList.add('hidden');
+        startPanel.classList.add('hidden');
         addPoiPanel.classList.remove('hidden');
         poiNameInput.focus();
     }
@@ -376,6 +380,54 @@
         closeAddPoi();
         renderPoiList();
         requestRedraw();
+    }
+
+    // ---- Start point ----
+
+    // Move the current position to a saved place and restart the track from there
+    function startFromPoi(poi) {
+        if (isTracking && !confirm(`Flytte posisjonen til «${poi.name}»? Sporet og skrittelleren nullstilles.`)) {
+            return false;
+        }
+        sensors.reset();
+        navigator.setStart(poi.x, poi.y, poi.floor);
+        setFloor(poi.floor);
+        if (targetId === poi.id) targetId = null; // already there
+        stepCountEl.textContent = '0 skritt';
+        if (!resumePanel.classList.contains('hidden')) {
+            resumePanel.classList.add('hidden');
+            if (!isTracking) btnStart.textContent = 'Start navigasjon';
+        }
+        renderer.centerOnPosition();
+        saveSession();
+        renderPoiList();
+        requestRedraw();
+        return true;
+    }
+
+    function openStartPanel() {
+        startListEl.textContent = '';
+        const pois = poiStore.list();
+        startEmptyEl.classList.toggle('hidden', pois.length > 0);
+        for (const poi of pois) {
+            const li = document.createElement('li');
+            const b = document.createElement('button');
+            const name = document.createElement('span');
+            name.textContent = poi.name;
+            const meta = document.createElement('span');
+            meta.className = 'start-meta';
+            meta.textContent = `Etasje ${floorLabel(poi.floor)}`;
+            b.append(name, meta);
+            b.addEventListener('click', () => {
+                if (startFromPoi(poi)) startPanel.classList.add('hidden');
+            });
+            li.appendChild(b);
+            startListEl.appendChild(li);
+        }
+        floorPanel.classList.add('hidden');
+        calibrationPanel.classList.add('hidden');
+        addPoiPanel.classList.add('hidden');
+        startPanel.classList.remove('hidden');
     }
 
     function renderPoiList() {
@@ -418,6 +470,9 @@
                 }
                 renderPoiList();
                 requestRedraw();
+            });
+            mk('Start herfra', '', () => {
+                if (startFromPoi(poi)) switchView('map');
             });
             mk('Vis på kart', '', () => {
                 if (poi.floor !== navigator.floor) setFloor(poi.floor);
@@ -470,6 +525,13 @@
     }
 
     document.getElementById('btn-add-poi').addEventListener('click', openAddPoi);
+    document.getElementById('btn-set-start').addEventListener('click', () => {
+        if (startPanel.classList.contains('hidden')) openStartPanel();
+        else startPanel.classList.add('hidden');
+    });
+    document.getElementById('btn-close-start').addEventListener('click', () => {
+        startPanel.classList.add('hidden');
+    });
     document.getElementById('btn-save-poi').addEventListener('click', savePoi);
     document.getElementById('btn-cancel-poi').addEventListener('click', closeAddPoi);
     poiNameInput.addEventListener('keydown', (e) => {
@@ -505,6 +567,7 @@
         floorPanel.classList.toggle('hidden');
         calibrationPanel.classList.add('hidden');
         addPoiPanel.classList.add('hidden');
+        startPanel.classList.add('hidden');
     });
 
     document.getElementById('btn-close-floor').addEventListener('click', () => {
@@ -515,6 +578,7 @@
         calibrationPanel.classList.toggle('hidden');
         floorPanel.classList.add('hidden');
         addPoiPanel.classList.add('hidden');
+        startPanel.classList.add('hidden');
     });
 
     document.getElementById('btn-close-calibration').addEventListener('click', () => {

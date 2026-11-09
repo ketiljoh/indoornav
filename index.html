@@ -36,6 +36,7 @@
 
         <div id="controls">
             <button id="btn-start" class="btn btn-primary">Start navigasjon</button>
+            <button id="btn-set-start" class="btn btn-secondary">Startsted</button>
             <button id="btn-add-poi" class="btn btn-secondary">+ Marker sted</button>
             <button id="btn-reset" class="btn btn-secondary">Nullstill</button>
             <button id="btn-set-floor" class="btn btn-secondary">Sett etasje</button>
@@ -58,6 +59,14 @@
             <button id="btn-close-calibration" class="btn btn-secondary">Lukk</button>
         </div>
 
+        <div id="start-panel" class="panel hidden">
+            <h3>Velg startsted</h3>
+            <p class="hint">Stå på stedet du velger. Posisjonen flyttes dit og sporet nullstilles.</p>
+            <ul id="start-list"></ul>
+            <p id="start-empty" class="hint hidden">Ingen lagrede steder ennå. Trykk «+ Marker sted» for å lagre et.</p>
+            <button id="btn-close-start" class="btn btn-secondary">Lukk</button>
+        </div>
+
         <div id="resume-panel" class="panel hidden">
             <h3>Navigasjonen ble avbrutt</h3>
             <p id="resume-info"></p>
@@ -75,7 +84,7 @@
 
         <div id="poi-list-panel" class="panel view-panel hidden">
             <h3>Mine steder</h3>
-            <p class="hint">Stedene lagres i nettleseren på denne enheten. Posisjonene er relative til startpunktet, så start navigasjonen fra samme sted hver gang.</p>
+            <p class="hint">Stedene lagres i nettleseren på denne enheten. Posisjonene er relative til startpunktet, så start fra samme sted hver gang, eller velg et lagret sted med «Startsted» / «Start herfra».</p>
             <ul id="poi-list"></ul>
             <p id="poi-empty" class="hint">Ingen steder ennå. Trykk «+ Marker sted» mens du navigerer.</p>
         </div>

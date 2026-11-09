@@ -361,3 +361,39 @@ input[type="range"] {
     cursor: pointer;
     flex-shrink: 0;
 }
+
+/* Start point picker */
+#start-list {
+    list-style: none;
+    max-height: 45vh;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+#start-list button {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 6px;
+    border: none;
+    border-radius: 10px;
+    background: var(--surface-light);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+#start-list button:active {
+    background: var(--primary);
+}
+
+#start-list .start-meta {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
