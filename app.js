@@ -4,7 +4,8 @@
     const navigator = new IndoorNavigator();
     const canvas = document.getElementById('map-canvas');
     const renderer = new MapRenderer(canvas);
-    const poiStore = new PoiStore();
+    const buildingStore = new BuildingStore();
+    const poiStore = new PoiStore(buildingStore.currentId);
 
     // UI Elements
     const btnStart = document.getElementById('btn-start');
@@ -45,6 +46,11 @@
     const startPanel = document.getElementById('start-panel');
     const startListEl = document.getElementById('start-list');
     const startEmptyEl = document.getElementById('start-empty');
+    const buildingPanel = document.getElementById('building-panel');
+    const buildingListEl = document.getElementById('building-list');
+    const buildingNameInput = document.getElementById('building-name-input');
+    const buildingNameEl = document.getElementById('building-name');
+    const poiListTitleEl = document.getElementById('poi-list-title');
 
     // Initialize floor buttons
     function initFloorButtons() {
@@ -92,6 +98,7 @@
             stepCount: sensors.stepCount,
             strideLength: navigator.strideLength,
             targetId,
+            buildingId: buildingStore.currentId,
         };
         try {
             localStorage.setItem(SESSION_KEY, JSON.stringify(data));
@@ -121,7 +128,8 @@
 
     function restoreSession() {
         const d = loadSession();
-        if (!d) return;
+        // A session from another building does not apply to the current one
+        if (!d || (d.buildingId && d.buildingId !== buildingStore.currentId)) return;
 
         navigator.position = { x: d.position.x, y: d.position.y };
         navigator.path = d.path.map(([x, y, floor]) => ({ x, y, floor }));
@@ -363,6 +371,7 @@
         floorPanel.classList.add('hidden');
         calibrationPanel.classList.add('hidden');
         startPanel.classList.add('hidden');
+        buildingPanel.classList.add('hidden');
         addPoiPanel.classList.remove('hidden');
         poiNameInput.focus();
     }
@@ -427,7 +436,134 @@
         floorPanel.classList.add('hidden');
         calibrationPanel.classList.add('hidden');
         addPoiPanel.classList.add('hidden');
+        buildingPanel.classList.add('hidden');
         startPanel.classList.remove('hidden');
+    }
+
+    // ---- Buildings ----
+
+    function updateBuildingLabels() {
+        const b = buildingStore.current();
+        buildingNameEl.textContent = b.name;
+        poiListTitleEl.textContent = `Steder i ${b.name}`;
+    }
+
+    // Switch building: places, position and track all belong to the building
+    function selectBuilding(id) {
+        if (id === buildingStore.currentId) {
+            buildingPanel.classList.add('hidden');
+            return;
+        }
+        const b = buildingStore.get(id);
+        if (!b) return;
+        if (isTracking && !confirm(`Bytte til «${b.name}»? Posisjonen og sporet nullstilles.`)) return;
+
+        buildingStore.setCurrent(id);
+        poiStore.buildingId = id;
+        targetId = null;
+        sensors.reset();
+        navigator.setStart(0, 0, 0);
+        setFloor(0);
+        stepCountEl.textContent = '0 skritt';
+        if (!resumePanel.classList.contains('hidden')) {
+            resumePanel.classList.add('hidden');
+            if (!isTracking) btnStart.textContent = 'Start navigasjon';
+        }
+        updateBuildingLabels();
+        renderer.centerOnPosition();
+        saveSession();
+        renderPoiList();
+        requestRedraw();
+        buildingPanel.classList.add('hidden');
+
+        // Next natural step in a building with saved places: pick where you stand
+        if (poiStore.list().length > 0) openStartPanel();
+    }
+
+    function renderBuildingList() {
+        buildingListEl.textContent = '';
+        const buildings = buildingStore.list();
+        for (const b of buildings) {
+            const li = document.createElement('li');
+            li.className = 'building-item';
+            if (b.id === buildingStore.currentId) li.classList.add('is-current');
+
+            const sel = document.createElement('button');
+            sel.className = 'building-select';
+            const name = document.createElement('span');
+            name.className = 'b-name';
+            name.textContent = b.name;
+            const meta = document.createElement('span');
+            meta.className = 'b-meta';
+            const n = poiStore.countIn(b.id);
+            meta.textContent = (n === 1 ? '1 sted' : `${n} steder`) +
+                (b.id === buildingStore.currentId ? ' · valgt' : '');
+            sel.append(name, meta);
+            sel.addEventListener('click', () => selectBuilding(b.id));
+
+            const rename = document.createElement('button');
+            rename.className = 'b-action';
+            rename.textContent = 'Endre navn';
+            rename.addEventListener('click', () => {
+                const newName = prompt('Nytt navn på bygget:', b.name);
+                if (newName && newName.trim()) {
+                    buildingStore.rename(b.id, newName);
+                    updateBuildingLabels();
+                    renderBuildingList();
+                }
+            });
+
+            li.append(sel, rename);
+
+            if (buildings.length > 1) {
+                const del = document.createElement('button');
+                del.className = 'b-action danger';
+                del.textContent = 'Slett';
+                del.addEventListener('click', () => deleteBuilding(b));
+                li.appendChild(del);
+            }
+            buildingListEl.appendChild(li);
+        }
+    }
+
+    function deleteBuilding(b) {
+        const n = poiStore.countIn(b.id);
+        const what = n === 0 ? '' : ` og ${n === 1 ? 'stedet' : `alle ${n} stedene`} i det`;
+        if (!confirm(`Slette bygget «${b.name}»${what}? Dette kan ikke angres.`)) return;
+        const wasCurrent = b.id === buildingStore.currentId;
+        const fallback = buildingStore.list().find(x => x.id !== b.id);
+        if (wasCurrent) {
+            selectBuilding(fallback.id);
+            if (buildingStore.currentId === b.id) return; // switch was cancelled
+        }
+        buildingStore.remove(b.id);
+        poiStore.removeBuilding(b.id);
+        updateBuildingLabels();
+        renderBuildingList();
+        renderPoiList();
+        requestRedraw();
+        if (wasCurrent) {
+            startPanel.classList.add('hidden');
+            buildingPanel.classList.remove('hidden');
+        }
+    }
+
+    function addBuilding() {
+        const b = buildingStore.add(buildingNameInput.value.trim() || buildingNameInput.placeholder);
+        buildingNameInput.value = '';
+        buildingNameInput.blur();
+        selectBuilding(b.id);
+    }
+
+    function openBuildingPanel() {
+        renderBuildingList();
+        buildingNameInput.value = '';
+        buildingNameInput.placeholder = buildingStore.defaultName();
+        floorPanel.classList.add('hidden');
+        calibrationPanel.classList.add('hidden');
+        addPoiPanel.classList.add('hidden');
+        startPanel.classList.add('hidden');
+        buildingPanel.classList.remove('hidden');
     }
 
     function renderPoiList() {
@@ -529,6 +665,17 @@
         if (startPanel.classList.contains('hidden')) openStartPanel();
         else startPanel.classList.add('hidden');
     });
+    document.getElementById('building-chip').addEventListener('click', () => {
+        if (buildingPanel.classList.contains('hidden')) openBuildingPanel();
+        else buildingPanel.classList.add('hidden');
+    });
+    document.getElementById('btn-close-building').addEventListener('click', () => {
+        buildingPanel.classList.add('hidden');
+    });
+    document.getElementById('btn-add-building').addEventListener('click', addBuilding);
+    buildingNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addBuilding();
+    });
     document.getElementById('btn-close-start').addEventListener('click', () => {
         startPanel.classList.add('hidden');
     });
@@ -568,6 +715,7 @@
         calibrationPanel.classList.add('hidden');
         addPoiPanel.classList.add('hidden');
         startPanel.classList.add('hidden');
+        buildingPanel.classList.add('hidden');
     });
 
     document.getElementById('btn-close-floor').addEventListener('click', () => {
@@ -579,6 +727,7 @@
         floorPanel.classList.add('hidden');
         addPoiPanel.classList.add('hidden');
         startPanel.classList.add('hidden');
+        buildingPanel.classList.add('hidden');
     });
 
     document.getElementById('btn-close-calibration').addEventListener('click', () => {
@@ -632,6 +781,7 @@
 
     // Init
     initFloorButtons();
+    updateBuildingLabels();
     restoreSession();
 
     document.getElementById('btn-resume').addEventListener('click', () => {

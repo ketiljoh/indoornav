@@ -1,4 +1,4 @@
-const CACHE_NAME = 'indoornav-v6';
+const CACHE_NAME = 'indoornav-v7';
 const ASSETS = [
     './',
     './index.html',
@@ -6,6 +6,7 @@ const ASSETS = [
     './sensors.js',
     './navigation.js',
     './map-renderer.js',
+    './buildings.js',
     './pois.js',
     './app.js',
     './manifest.json'

@@ -1,10 +1,17 @@
 // Points of interest — persisted in localStorage.
 // Coordinates are in meters relative to the navigation start point,
 // so they are only meaningful when navigation starts from the same physical spot.
+// Every place belongs to one building; list()/add() work on the current building.
 class PoiStore {
-    constructor(storageKey = 'indoornav-pois') {
+    constructor(buildingId, storageKey = 'indoornav-pois') {
         this.storageKey = storageKey;
+        this.buildingId = buildingId;
         this.pois = this._load();
+        // Places saved before buildings existed go into the initial building
+        if (this.pois.some(p => !p.buildingId)) {
+            this.pois.forEach(p => { if (!p.buildingId) p.buildingId = buildingId; });
+            this._save();
+        }
     }
 
     _load() {
@@ -34,8 +41,18 @@ class PoiStore {
         return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     }
 
+    // Places in the current building
     list() {
-        return this.pois;
+        return this.pois.filter(p => p.buildingId === this.buildingId);
+    }
+
+    countIn(buildingId) {
+        return this.pois.filter(p => p.buildingId === buildingId).length;
+    }
+
+    removeBuilding(buildingId) {
+        this.pois = this.pois.filter(p => p.buildingId !== buildingId);
+        return this._save();
     }
 
     get(id) {
@@ -45,8 +62,9 @@ class PoiStore {
     add(name, x, y, floor) {
         const poi = {
             id: this._newId(),
-            name: name.trim() || `Punkt ${this.pois.length + 1}`,
+            name: name.trim() || this.defaultName(),
             x, y, floor,
+            buildingId: this.buildingId,
             createdAt: new Date().toISOString(),
         };
         this.pois.push(poi);
@@ -67,6 +85,6 @@ class PoiStore {
     }
 
     defaultName() {
-        return `Punkt ${this.pois.length + 1}`;
+        return `Punkt ${this.list().length + 1}`;
     }
 }

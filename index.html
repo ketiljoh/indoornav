@@ -14,7 +14,7 @@
 <body>
     <div id="app">
         <header id="header">
-            <h1>IndoorNav</h1>
+            <h1><button id="building-chip" aria-label="Velg bygg"><span id="building-name">IndoorNav</span> ▾</button></h1>
             <div id="status-bar">
                 <span id="step-count">0 skritt</span>
                 <span id="heading-display">--°</span>
@@ -59,6 +59,17 @@
             <button id="btn-close-calibration" class="btn btn-secondary">Lukk</button>
         </div>
 
+        <div id="building-panel" class="panel hidden">
+            <h3>Bygg</h3>
+            <p class="hint">Hvert bygg har sine egne steder. Trykk på et bygg for å bytte.</p>
+            <ul id="building-list"></ul>
+            <div id="building-add">
+                <input type="text" id="building-name-input" maxlength="40" placeholder="Nytt bygg" autocomplete="off" enterkeyhint="done">
+                <button id="btn-add-building" class="btn btn-primary">Legg til</button>
+            </div>
+            <button id="btn-close-building" class="btn btn-secondary">Lukk</button>
+        </div>
+
         <div id="start-panel" class="panel hidden">
             <h3>Velg startsted</h3>
             <p class="hint">Stå på stedet du velger. Posisjonen flyttes dit og sporet nullstilles.</p>
@@ -83,7 +94,7 @@
         </div>
 
         <div id="poi-list-panel" class="panel view-panel hidden">
-            <h3>Mine steder</h3>
+            <h3 id="poi-list-title">Mine steder</h3>
             <p class="hint">Stedene lagres i nettleseren på denne enheten. Posisjonene er relative til startpunktet, så start fra samme sted hver gang, eller velg et lagret sted med «Startsted» / «Start herfra».</p>
             <ul id="poi-list"></ul>
             <p id="poi-empty" class="hint">Ingen steder ennå. Trykk «+ Marker sted» mens du navigerer.</p>
@@ -104,6 +115,7 @@
     <script src="sensors.js"></script>
     <script src="navigation.js"></script>
     <script src="map-renderer.js"></script>
+    <script src="buildings.js"></script>
     <script src="pois.js"></script>
     <script src="app.js"></script>
     <script>
